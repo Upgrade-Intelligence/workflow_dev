@@ -1,0 +1,558 @@
+You convert Stage 4 story nodes into display-ready scene text and matching image prompts.
+
+INPUT FIELDS
+- story_node_graph_xml: {{story_node_graph_xml}}
+- character_bible_json: {{character_bible_json}}
+- style_defaults: {{style_defaults}}
+
+INSTRUCTIONS
+1. Parse `story_node_graph_xml`. Preserve the node order and every attribute/child element that already exists (IDs, Type, NextNode, RetryMessage, Choices, ParentChoiceId, etc.).
+2. Study `character_bible_json` to understand each character’s canonical `character_id`, name, traits, and relationships. Reference only these IDs when listing characters.
+3. Replace each `<NodeContent>` with:
+   - `<SceneText>` containing 1–2 gentle sentences ready for on-screen display. Keep vocabulary preschool-friendly, positive, and faithful to the source details.
+   - `<ImagePrompt>` (≤45 words) describing the visual scene for illustration generation. Mention setting, character actions, expressions, and mood without introducing new story facts.
+4. Emit a `<CharacterList>` for every node. Include one `<CharacterId>` child per character who appears in the scene, using the IDs from `character_bible_json`. Repeat an ID only once per node, and output `<CharacterList />` if no characters participate.
+5. For `<Choice>` elements inside `choice_question` nodes, lightly polish `<ChoiceText>` so it is concise (≤14 words), optimistic, and child-friendly. Do not alter IDs, correctness flags, or navigation.
+6. Leave `<RetryMessage>` verbatim except for trimming whitespace; rewrite only if needed to maintain gentle tone ≤18 words.
+7. Apply the same `<SceneText>` / `<ImagePrompt>` transformation to `choice_outcome` nodes, ensuring they align with the consequence described in Stage 4.
+8. Maintain a smooth narrative voice across nodes. Do not add new nodes, remove nodes, or change `<NextNode>` routing.
+
+OUTPUT (XML only)
+<StoryNodes>
+  <Node>
+    <Id>...</Id>
+    <Type>...</Type>
+    <NextNode>...</NextNode>
+    <!-- Preserve any existing metadata elements -->
+    <SceneText>Display-ready copy here.</SceneText>
+    <ImagePrompt>Illustration guidance here.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-1</CharacterId>
+      <CharacterId>char-2</CharacterId>
+    </CharacterList>
+    <!-- For choice questions retain RetryMessage and Choices with polished text -->
+    <RetryMessage>...</RetryMessage>
+    <Choices>
+      <Choice>
+        <Id>...</Id>
+        <IsCorrect>...</IsCorrect>
+        <NextNode>...</NextNode>
+        <ChoiceText>Polished choice text.</ChoiceText>
+      </Choice>
+    </Choices>
+  </Node>
+  <!-- Repeat for every node in order -->
+</StoryNodes>
+
+### One-shot Example
+Sample input:
+```
+character_bible_json: [
+  {
+    "character_id": "char-luna",
+    "name": "Luna",
+    "species": "rabbit",
+    "traits": ["gentle", "thoughtful"]
+  },
+  {
+    "character_id": "char-milo",
+    "name": "Milo",
+    "species": "fox",
+    "traits": ["enthusiastic", "helpful"]
+  },
+  {
+    "character_id": "char-nori",
+    "name": "Nori",
+    "species": "otter",
+    "traits": ["cheerful", "artistic"]
+  }
+]
+story_node_graph_xml: <StoryNodes>
+  <Node>
+    <Id>1</Id>
+    <Type>linear</Type>
+    <NextNode>2</NextNode>
+    <NodeContent>Luna strolls across the clover meadow at dawn, humming as she fills her blue basket with carrot crackers, strawberry jam, and tiny cups. She pauses to smell the cool grass and imagines how Milo and Nori will grin when they spot the picnic gleaming in the morning light.</NodeContent>
+  </Node>
+  <Node>
+    <Id>2</Id>
+    <Type>linear</Type>
+    <NextNode>3</NextNode>
+    <NodeContent>She chooses a bend beside the gentle brook, smooths the gingham blanket until every corner rests flat, and places bowls of ripe berries around a glistening jug of juice. The murmuring water and drifting pollen make the spot feel like a soft doorway into the friends’ summer morning.</NodeContent>
+  </Node>
+  <Node>
+    <Id>3</Id>
+    <Type>choice_question</Type>
+    <NextNode>null</NextNode>
+    <NodeContent>Milo arrives with his tummy rumbling and empty paws. How can Luna include him kindly?</NodeContent>
+    <RetryMessage>Let’s pick a kinder idea.</RetryMessage>
+    <Choices>
+      <Choice>
+        <Id>3-A</Id>
+        <IsCorrect>false</IsCorrect>
+        <NextNode>4-A</NextNode>
+        <ChoiceText>Keep the crackers to herself.</ChoiceText>
+      </Choice>
+      <Choice>
+        <Id>3-B</Id>
+        <IsCorrect>true</IsCorrect>
+        <NextNode>4-B</NextNode>
+        <ChoiceText>Invite Milo to pour the juice.</ChoiceText>
+      </Choice>
+      <Choice>
+        <Id>3-C</Id>
+        <IsCorrect>false</IsCorrect>
+        <NextNode>4-C</NextNode>
+        <ChoiceText>Tell Milo to find snacks alone.</ChoiceText>
+      </Choice>
+    </Choices>
+  </Node>
+  <Node>
+    <Id>4-A</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>3</NextNode>
+    <ParentChoiceId>3-A</ParentChoiceId>
+    <NodeContent>Milo’s tail droops when Luna keeps the crackers, so she realizes that wasn’t kind and wants to try again.</NodeContent>
+  </Node>
+  <Node>
+    <Id>4-B</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>5</NextNode>
+    <ParentChoiceId>3-B</ParentChoiceId>
+    <NodeContent>Milo beams while he pours the berry juice beside Luna, and together they get ready to welcome Nori.</NodeContent>
+  </Node>
+  <Node>
+    <Id>4-C</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>3</NextNode>
+    <ParentChoiceId>3-C</ParentChoiceId>
+    <NodeContent>Milo shuffles toward the clover alone, and Luna hears her heart remind her to choose a kinder plan.</NodeContent>
+  </Node>
+  <Node>
+    <Id>5</Id>
+    <Type>linear</Type>
+    <NextNode>6</NextNode>
+    <NodeContent>Remembering how helping can settle nervous paws, Luna asks if Milo would like to pour the berry juice while she lines up the crackers. Together they set cheerful cups beneath the daisies, and with each careful tilt his shoulders relax until a grin spreads across his whiskers.</NodeContent>
+  </Node>
+  <Node>
+    <Id>6</Id>
+    <Type>linear</Type>
+    <NextNode>7</NextNode>
+    <NodeContent>Soon Nori pads over carrying a tiny jar of meadow daisies. Luna nestles the blossoms beside the cups, invites Nori into the circle, and the trio scoots close enough for knees to touch while they giggle about the tickly grass and how good it feels to be together so early.</NodeContent>
+  </Node>
+  <Node>
+    <Id>7</Id>
+    <Type>linear</Type>
+    <NextNode>8</NextNode>
+    <NodeContent>Before taking a bite, Luna suggests they whisper something they are grateful for, which makes everyone pause and smile. Milo thanks the sunshine, Nori thanks the crunchy apples, and Luna thanks the friends at her side; then they nibble while the brook’s hush wraps around the picnic like a song.</NodeContent>
+  </Node>
+  <Node>
+    <Id>8</Id>
+    <Type>choice_question</Type>
+    <NextNode>null</NextNode>
+    <NodeContent>A breezy gust twirls the picnic napkins into the clover. What should the friends do to keep their blanket tidy?</NodeContent>
+    <RetryMessage>Let’s steady the picnic together.</RetryMessage>
+    <Choices>
+      <Choice>
+        <Id>8-A</Id>
+        <IsCorrect>false</IsCorrect>
+        <NextNode>9-A</NextNode>
+        <ChoiceText>Let the napkins flutter away.</ChoiceText>
+      </Choice>
+      <Choice>
+        <Id>8-B</Id>
+        <IsCorrect>true</IsCorrect>
+        <NextNode>9-B</NextNode>
+        <ChoiceText>Sing the tidy-up song and gather them.</ChoiceText>
+      </Choice>
+      <Choice>
+        <Id>8-C</Id>
+        <IsCorrect>false</IsCorrect>
+        <NextNode>9-C</NextNode>
+        <ChoiceText>Sit on the blanket and ignore the mess.</ChoiceText>
+      </Choice>
+    </Choices>
+  </Node>
+  <Node>
+    <Id>9-A</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>8</NextNode>
+    <ParentChoiceId>8-A</ParentChoiceId>
+    <NodeContent>The napkins drift into puddles and everyone frowns, so they promise to try again and keep the picnic cozy.</NodeContent>
+  </Node>
+  <Node>
+    <Id>9-B</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>10</NextNode>
+    <ParentChoiceId>8-B</ParentChoiceId>
+    <NodeContent>Milo and Nori dance with Luna’s tidy-up song, scoop the napkins, and the blanket looks neat for the next fun moment.</NodeContent>
+  </Node>
+  <Node>
+    <Id>9-C</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>8</NextNode>
+    <ParentChoiceId>8-C</ParentChoiceId>
+    <NodeContent>The breeze tumbles crumbs across the blanket, and the friends notice the mess growing, so they decide to make a better plan.</NodeContent>
+  </Node>
+  <Node>
+    <Id>10</Id>
+    <Type>linear</Type>
+    <NextNode>11</NextNode>
+    <NodeContent>Just as quiet settles again, Milo steps on a squished berry and the jug wobbles in his paws. Ruby juice splashes across the cloth, his whiskers freeze in surprise, and the friends gasp together as they watch precious drops roll toward the edge of the blanket.</NodeContent>
+  </Node>
+  <Node>
+    <Id>11</Id>
+    <Type>choice_question</Type>
+    <NextNode>null</NextNode>
+    <NodeContent>Milo gasps as ruby juice splashes over the blanket and his paws tremble. What can Luna say to help everyone feel calm?</NodeContent>
+    <RetryMessage>Let’s choose words that feel gentle.</RetryMessage>
+    <Choices>
+      <Choice>
+        <Id>11-A</Id>
+        <IsCorrect>false</IsCorrect>
+        <NextNode>12-A</NextNode>
+        <ChoiceText>Scold Milo for the spill.</ChoiceText>
+      </Choice>
+      <Choice>
+        <Id>11-B</Id>
+        <IsCorrect>true</IsCorrect>
+        <NextNode>12-B</NextNode>
+        <ChoiceText>Breathe together and wipe the juice gently.</ChoiceText>
+      </Choice>
+      <Choice>
+        <Id>11-C</Id>
+        <IsCorrect>false</IsCorrect>
+        <NextNode>12-C</NextNode>
+        <ChoiceText>Tell Milo to clean it alone.</ChoiceText>
+      </Choice>
+    </Choices>
+  </Node>
+  <Node>
+    <Id>12-A</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>11</NextNode>
+    <ParentChoiceId>11-A</ParentChoiceId>
+    <NodeContent>Milo’s ears droop when Luna scolds him, and she quickly remembers they can solve accidents with kind voices, so she tries again.</NodeContent>
+  </Node>
+  <Node>
+    <Id>12-B</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>13</NextNode>
+    <ParentChoiceId>11-B</ParentChoiceId>
+    <NodeContent>Luna hums a slow breath, dabs the juice with Milo, and soon they grin, ready to listen to a cozy story.</NodeContent>
+  </Node>
+  <Node>
+    <Id>12-C</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>11</NextNode>
+    <ParentChoiceId>11-C</ParentChoiceId>
+    <NodeContent>Milo looks overwhelmed when asked to fix it alone, so Luna pauses and decides to find friendlier words before trying again.</NodeContent>
+  </Node>
+  <Node>
+    <Id>13</Id>
+    <Type>linear</Type>
+    <NextNode>END</NextNode>
+    <NodeContent>Calm drifting back, Luna opens a tiny storybook about sharing umbrellas in the rain while Milo and Nori lean against her shoulders. Sunset paints the meadow peach and gold, and after the last page they pack the basket and wander home glowing with each kind moment they shared.</NodeContent>
+  </Node>
+</StoryNodes>
+```
+
+Expected output:
+```
+<StoryNodes>
+  <Node>
+    <Id>1</Id>
+    <Type>linear</Type>
+    <NextNode>2</NextNode>
+    <SceneText>Luna skips through the clover at sunrise, humming while her basket jingles with crackers, jam, and tiny cups. She smiles, imagining Milo and Nori’s bright faces.</SceneText>
+    <ImagePrompt>Sunny meadow at dawn; Luna the bunny carrying a basket of snacks, soft clover, warm light, joyful expression.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>2</Id>
+    <Type>linear</Type>
+    <NextNode>3</NextNode>
+    <SceneText>She spreads a gingham blanket beside the brook, smoothing each corner and arranging bowls of berries and a glistening jug of juice.</SceneText>
+    <ImagePrompt>Gingham blanket near a gentle brook; bowls of berries, pitcher of juice, early summer breeze, calm preparations.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>3</Id>
+    <Type>choice_question</Type>
+    <NextNode>null</NextNode>
+    <SceneText>Milo arrives with empty paws and a rumbling tummy. How can Luna help him feel welcome?</SceneText>
+    <ImagePrompt>Sunny picnic scene; Luna the bunny greeting Milo the fox, basket of snacks nearby, warm smiles.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+    </CharacterList>
+    <RetryMessage>Let’s choose the kindest idea.</RetryMessage>
+    <Choices>
+      <Choice>
+        <Id>3-A</Id>
+        <IsCorrect>false</IsCorrect>
+        <NextNode>4-A</NextNode>
+        <ChoiceText>Keep the crackers for herself.</ChoiceText>
+      </Choice>
+      <Choice>
+        <Id>3-B</Id>
+        <IsCorrect>true</IsCorrect>
+        <NextNode>4-B</NextNode>
+        <ChoiceText>Invite Milo to pour the juice with her.</ChoiceText>
+      </Choice>
+      <Choice>
+        <Id>3-C</Id>
+        <IsCorrect>false</IsCorrect>
+        <NextNode>4-C</NextNode>
+        <ChoiceText>Tell Milo to hunt for snacks alone.</ChoiceText>
+      </Choice>
+    </Choices>
+  </Node>
+  <Node>
+    <Id>4-A</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>3</NextNode>
+    <ParentChoiceId>3-A</ParentChoiceId>
+    <SceneText>Milo’s tail droops when Luna keeps the crackers, and she quickly senses that choice wasn’t kind.</SceneText>
+    <ImagePrompt>Milo the fox looking disappointed; Luna realizing she wants to be kinder, soft warning colors.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>4-B</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>5</NextNode>
+    <ParentChoiceId>3-B</ParentChoiceId>
+    <SceneText>Milo grins while he pours the sparkling juice beside Luna, both friends ready to welcome Nori.</SceneText>
+    <ImagePrompt>Milo carefully pouring juice with Luna’s encouraging smile; picnic setup glowing in morning light.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>4-C</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>3</NextNode>
+    <ParentChoiceId>3-C</ParentChoiceId>
+    <SceneText>Milo shuffles toward the clover, and Luna’s heart nudges her to try a kinder plan.</SceneText>
+    <ImagePrompt>Milo walking sadly toward clover while Luna watches with gentle concern; soft pastel palette.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>5</Id>
+    <Type>linear</Type>
+    <NextNode>6</NextNode>
+    <SceneText>Luna lines up cheerful cups while Milo relaxes beside her, the picnic growing cozier with each careful tilt.</SceneText>
+    <ImagePrompt>Picnic blanket with cups being arranged; Milo smiling, Luna content, soft daisies around them.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>6</Id>
+    <Type>linear</Type>
+    <NextNode>7</NextNode>
+    <SceneText>Nori arrives with meadow daisies, and the friends scoot closer, giggling about the tickly grass.</SceneText>
+    <ImagePrompt>Nori the otter offering daisies; friends gathered closely on the blanket, bright midday colors.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+      <CharacterId>char-nori</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>7</Id>
+    <Type>linear</Type>
+    <NextNode>8</NextNode>
+    <SceneText>Before nibbling, they whisper thanks for the sunshine, crunchy apples, and the friends at their side.</SceneText>
+    <ImagePrompt>Friends seated together, paws folded in gratitude; apples and treats nearby, calm brook in background.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+      <CharacterId>char-nori</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>8</Id>
+    <Type>choice_question</Type>
+    <NextNode>null</NextNode>
+    <SceneText>A breezy gust lifts the napkins into the clover. What should they do to keep the picnic tidy?</SceneText>
+    <ImagePrompt>Windy picnic moment; napkins fluttering, friends reacting with cheerful urgency, blanket partially lifted.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+      <CharacterId>char-nori</CharacterId>
+    </CharacterList>
+    <RetryMessage>Let’s steady our picnic together.</RetryMessage>
+    <Choices>
+      <Choice>
+        <Id>8-A</Id>
+        <IsCorrect>false</IsCorrect>
+        <NextNode>9-A</NextNode>
+        <ChoiceText>Let the napkins flutter away.</ChoiceText>
+      </Choice>
+      <Choice>
+        <Id>8-B</Id>
+        <IsCorrect>true</IsCorrect>
+        <NextNode>9-B</NextNode>
+        <ChoiceText>Sing the tidy-up song and gather them.</ChoiceText>
+      </Choice>
+      <Choice>
+        <Id>8-C</Id>
+        <IsCorrect>false</IsCorrect>
+        <NextNode>9-C</NextNode>
+        <ChoiceText>Sit still and ignore the mess.</ChoiceText>
+      </Choice>
+    </Choices>
+  </Node>
+  <Node>
+    <Id>9-A</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>8</NextNode>
+    <ParentChoiceId>8-A</ParentChoiceId>
+    <SceneText>Napkins drift into puddles and the friends frown, promising to try a better plan.</SceneText>
+    <ImagePrompt>Wind-blown napkins landing in puddles; friends looking disappointed but determined to fix it.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+      <CharacterId>char-nori</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>9-B</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>10</NextNode>
+    <ParentChoiceId>8-B</ParentChoiceId>
+    <SceneText>Milo and Nori dance with Luna’s tidy-up song, gathering napkins until the blanket looks neat again.</SceneText>
+    <ImagePrompt>Friends happily collecting napkins while singing; blanket tidy, joyful motion captured.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+      <CharacterId>char-nori</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>9-C</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>8</NextNode>
+    <ParentChoiceId>8-C</ParentChoiceId>
+    <SceneText>Crumbs scatter as they ignore the mess, and they realize a better plan will feel nicer.</SceneText>
+    <ImagePrompt>Blanket getting messier with crumbs; friends noticing the clutter with gentle concern.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+      <CharacterId>char-nori</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>10</Id>
+    <Type>linear</Type>
+    <NextNode>11</NextNode>
+    <SceneText>Milo steps on a squished berry, the jug wobbles, and ruby juice splashes across the cloth while everyone gasps.</SceneText>
+    <ImagePrompt>Berry spill moment; juice splashing, Milo startled, friends reacting with bright expressions.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+      <CharacterId>char-nori</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>11</Id>
+    <Type>choice_question</Type>
+    <NextNode>null</NextNode>
+    <SceneText>Juice splashes the blanket and Milo’s paws tremble. What gentle words can Luna offer?</SceneText>
+    <ImagePrompt>Spilled juice on blanket; Luna leaning toward Milo with caring eyes, warm picnic light.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+      <CharacterId>char-nori</CharacterId>
+    </CharacterList>
+    <RetryMessage>Let’s choose calming words together.</RetryMessage>
+    <Choices>
+      <Choice>
+        <Id>11-A</Id>
+        <IsCorrect>false</IsCorrect>
+        <NextNode>12-A</NextNode>
+        <ChoiceText>Scold Milo for the spill.</ChoiceText>
+      </Choice>
+      <Choice>
+        <Id>11-B</Id>
+        <IsCorrect>true</IsCorrect>
+        <NextNode>12-B</NextNode>
+        <ChoiceText>Breathe together and wipe the juice slowly.</ChoiceText>
+      </Choice>
+      <Choice>
+        <Id>11-C</Id>
+        <IsCorrect>false</IsCorrect>
+        <NextNode>12-C</NextNode>
+        <ChoiceText>Ask Milo to clean it alone.</ChoiceText>
+      </Choice>
+    </Choices>
+  </Node>
+  <Node>
+    <Id>12-A</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>11</NextNode>
+    <ParentChoiceId>11-A</ParentChoiceId>
+    <SceneText>Milo’s ears droop at the scolding, and Luna remembers they solve accidents with gentle voices.</SceneText>
+    <ImagePrompt>Milo looking sad after harsh words; Luna realizing she wants a kinder approach, soft tones.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>12-B</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>13</NextNode>
+    <ParentChoiceId>11-B</ParentChoiceId>
+    <SceneText>Luna hums a slow breath, dabs the juice with Milo, and soon they grin, ready for cozy story time.</SceneText>
+    <ImagePrompt>Luna and Milo wiping the blanket together calmly; relaxed smiles, warm sunset light.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>12-C</Id>
+    <Type>choice_outcome</Type>
+    <NextNode>11</NextNode>
+    <ParentChoiceId>11-C</ParentChoiceId>
+    <SceneText>Milo looks overwhelmed when asked to fix it alone, and Luna realizes friendlier words would help.</SceneText>
+    <ImagePrompt>Milo anxious with cloth, Luna preparing kinder support; gentle evening glow.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+    </CharacterList>
+  </Node>
+  <Node>
+    <Id>13</Id>
+    <Type>linear</Type>
+    <NextNode>END</NextNode>
+    <SceneText>With calm restored, Luna reads a tiny sharing story as the friends snuggle under the peach-and-gold sunset.</SceneText>
+    <ImagePrompt>Friends cuddled on the blanket at sunset; small storybook open, sky painted peach and gold.</ImagePrompt>
+    <CharacterList>
+      <CharacterId>char-luna</CharacterId>
+      <CharacterId>char-milo</CharacterId>
+      <CharacterId>char-nori</CharacterId>
+    </CharacterList>
+  </Node>
+</StoryNodes>
+```
+
+
+RESPONSE RULES
+- Return only the XML snippet. No markdown or commentary.
+- Ensure every original node appears once with identical IDs and navigation.
+- Do not reintroduce `<NodeContent>` or remove existing elements other than replacing it with `<SceneText>` and `<ImagePrompt>`.

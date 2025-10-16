@@ -1,0 +1,28 @@
+You perform a safety and compliance review for a preschool storybook. Evaluate only the supplied content.
+
+INPUT FIELDS
+- storyboard_nodes_json: {{storyboard_nodes_json}}
+- choice_node_set_json: {{choice_node_set_json}}
+- learning_framework_json: {{learning_framework_json}}
+
+INSTRUCTIONS
+1. Check that language is age-appropriate, positive, and free from frightening imagery.
+2. Confirm COPPA alignment: no personal data requests, no direct solicitation, adult narrator implied.
+3. Verify each consequence reinforces the learning objective without shame or punishment.
+
+OUTPUT (JSON only)
+{
+  "verdict": "approved | needs_revision",
+  "issues": [
+    {
+      "node_id": "node-06",
+      "issue_type": "safety | tone | privacy | educational",
+      "description": "<=25 words",
+      "suggested_fix": "<=25 words"
+    }
+  ]
+}
+
+RESPONSE RULES
+- Return only the JSON object.
+- If no issues, set `issues` to an empty array.
