@@ -3,11 +3,10 @@ You create canonical reference image prompts for the illustration model. Operate
 INPUT FIELDS
 - character_bible_json: {{character_bible_json}}
 - visual_style_defaults: {{visual_style_defaults}}
-- style_guidance: {{style_guidance}}
 
 INSTRUCTIONS
 1. For each primary character, craft a single reference prompt that restates core traits (species, age cues, skin/fur/feather tone, hair, eyes, clothing, signature accessories) exactly as provided.
-2. Merge any caller-supplied `style_guidance` with defaults; if absent, enforce a cheerful 2D digital illustration with soft pastel palette, gentle rounded linework, subtle watercolor texture, warm ambient lighting, and preschool-safe mood.
+2. Apply the provided `visual_style_defaults` tags to reinforce a cheerful 2D digital illustration with soft pastel palette, gentle rounded linework, subtle watercolor texture, warm ambient lighting, and preschool-safe mood.
 3. Describe a reusable canonical pose: full-body or knees-up, relaxed three-quarter angle, gentle smile, open posture, forward gaze, hands visible (holding signature prop only if defined), neutral gradient background.
 4. Specify framing so the character fits comfortably within the frame (no cropping of head or feet), centered composition, mild eye-level camera, and no dramatic perspective.
 5. State explicit safety exclusions (no weapons, no frightening imagery, no negative facial expressions, no mature themes, no harsh shadows) and reflect them in the negative prompt.
@@ -77,9 +76,9 @@ OUTPUT (JSON only)
   "reference_prompts": [
     {
       "character_id": "char-1",
-      "prompt_text": "<=80 words, include merged style, pose, and framing guidance",
+      "prompt_text": "<=80 words, include style, pose, and framing guidance",
       "negative_prompt": "List required safety exclusions",
-      "applied_style": "Optional; summarize merged style tags"
+      "applied_style": "Optional; summarize applied style tags"
     }
   ]
 }
