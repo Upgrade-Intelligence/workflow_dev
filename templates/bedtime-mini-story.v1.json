@@ -1,0 +1,86 @@
+{
+  "template_id": "bedtime-mini-story",
+  "version": "1.0",
+  "display": {
+    "title": "Bedtime Mini Story",
+    "one_liner": "A short cozy bedtime tale with a gentle lesson.",
+    "example_use_cases": [
+      "Wind-down story before sleep",
+      "Comforting tale after a busy day",
+      "Gentle story about bravery"
+    ]
+  },
+  "tags": ["education", "kids", "story", "bedtime"],
+  "inputs": {
+    "required": ["child_age", "theme"],
+    "optional": [
+      "child_name",
+      "bedtime_feeling",
+      "comfort_object",
+      "parental_guidance",
+      "language",
+      "narrator_voice",
+      "reading_level",
+      "tone",
+      "illustration_style",
+      "custom_instructions"
+    ]
+  },
+  "input_specs": [
+    {"key": "child_age", "label": "Child Age", "type": "enum", "options": [2, 3, 4, 5, 6, 7], "default": 4},
+    {"key": "bedtime_feeling", "label": "Bedtime Feeling", "type": "enum", "options": ["wired", "calm", "worried"], "default": "calm"},
+    {"key": "comfort_object", "label": "Comfort Object", "type": "string", "default": ""},
+    {"key": "custom_instructions", "label": "Custom Instructions", "type": "string", "default": ""}
+  ],
+  "constants": {
+    "word_band": {"min_words": 260, "max_words": 320},
+    "pagination": {"node_count": 8, "desired_choice_count": 2},
+    "media": {"style_guidance_ref": "@bedtime-mini-story.image_style_guidance.json"}
+  },
+  "stages": {
+    "stage1": {
+      "system": "You are the Educational Theme Integrator for an interactive storybook generator serving children. Work only with the information provided.",
+      "instructions": "Interpret inputs to produce a gentle learning blueprint tailored to age, theme, and parental notes. If custom instructions are present, respect them when safe. Output JSON with learning_objectives, target_skills, theme_alignment_notes.",
+      "input_mapping": {
+        "child_age": "{{inputs.child_age}}",
+        "theme": "{{inputs.theme}}",
+        "parental_guidance": "{{inputs.parental_guidance}}",
+        "custom_instructions": "{{inputs.custom_instructions}}"
+      }
+    },
+    "stage2": {
+      "system": "You are the Story Generator for a cozy children’s bedtime story. Use only the supplied context.",
+      "instructions": "Write one continuous bedtime tale between {{constants.word_band.min_words}} and {{constants.word_band.max_words}} words with setup, soft build, tiny climax, warm resolution. Respect safe custom instructions. Include a small character_bible and 1–2 settings. Use {{inputs.language}} if provided, tone {{inputs.tone}} if provided, and reading simplicity per {{inputs.reading_level}} if provided.",
+      "input_mapping": {
+        "learning_framework_json": "{{stage1.output}}",
+        "child_age": "{{inputs.child_age}}",
+        "theme": "{{inputs.theme}}",
+        "bedtime_feeling": "{{inputs.bedtime_feeling}}",
+        "comfort_object": "{{inputs.comfort_object}}",
+        "child_name": "{{inputs.child_name}}",
+        "custom_instructions": "{{inputs.custom_instructions}}"
+      }
+    },
+    "stage3": {
+      "system": "You orchestrate story pagination and gentle choices for a bedtime story.",
+      "instructions": "Split the narrative into nodes and add exactly the configured number of gentle choices. Keep language soothing and chronology intact.",
+      "input_mapping": {
+        "story_draft_json": "{{stage2.output}}",
+        "learning_framework_json": "{{stage1.output}}",
+        "node_count": "{{constants.pagination.node_count}}",
+        "desired_choice_count": "{{constants.pagination.desired_choice_count}}"
+      }
+    },
+    "stage4": {
+      "system": "You convert Stage 4 story nodes into display-ready scene text and matching image prompts.",
+      "instructions": "Convert nodes into SceneText and ImagePrompt with soft, calming visuals; polish choices to be gentle and brief. Append style_prompt_suffix from constants.media.style_guidance_ref (if present) to each ImagePrompt.",
+      "input_mapping": {
+        "story_node_graph_xml": "{{stage3.output}}",
+        "character_bible_json": "{{stage2.output.character_bible}}",
+        "style_defaults": "{\"illustration_style\": \"{{inputs.illustration_style}}\", \"narrator_voice\": \"{{inputs.narrator_voice}}\"}"
+      }
+    }
+  },
+  "safety": {"age_appropriate": true, "notes": "No PII; gentle language; avoid fear triggers."},
+  "outputs": {"expects": ["LearningBlueprint", "StoryDraft", "StoryNodes", "Storyboard"], "format": "JSON"}
+}

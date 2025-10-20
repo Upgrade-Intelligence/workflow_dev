@@ -1,0 +1,93 @@
+{
+  "template_id": "kids-moral-story",
+  "version": "1.0",
+  "display": {
+    "title": "Kids Moral Story",
+    "one_liner": "A gentle story teaching a clear moral for young children.",
+    "example_use_cases": [
+      "Sharing toys kindly",
+      "Telling the truth",
+      "Helping a friend"
+    ]
+  },
+  "tags": ["education", "kids", "story", "moral"],
+  "inputs": {
+    "required": ["child_age", "theme", "parental_guidance"],
+    "optional": [
+      "character_preferences",
+      "plot_preferences",
+      "language",
+      "narrator_voice",
+      "reading_level",
+      "tone",
+      "illustration_style",
+      "custom_instructions"
+    ]
+  },
+  "input_specs": [
+    {"key": "child_age", "label": "Child Age", "type": "enum", "options": [2, 3, 4, 5, 6, 7], "default": 4},
+    {"key": "custom_instructions", "label": "Custom Instructions", "type": "string", "default": ""}
+  ],
+  "constants": {
+    "word_band": {"min_words": 380, "max_words": 420},
+    "pagination": {"node_count": 10, "desired_choice_count": 4},
+    "media": {"style_guidance_ref": "@kids-moral-story.image_style_guidance.json"}
+  },
+  "stages": {
+    "stage1": {
+      "system": "You are the Educational Theme Integrator for an interactive storybook generator serving children aged 3-5. Work only with the information provided.",
+      "instructions": "Interpret inputs to produce a learning blueprint tailored to age, theme, and parental notes. If custom instructions are present, respect them when safe and age-appropriate. Output JSON with learning_objectives, target_skills, theme_alignment_notes. Keep vocabulary simple and positive.",
+      "input_mapping": {
+        "child_age": "{{inputs.child_age}}",
+        "theme": "{{inputs.theme}}",
+        "parental_guidance": "{{inputs.parental_guidance}}",
+        "character_preferences": "{{inputs.character_preferences}}",
+        "plot_preferences": "{{inputs.plot_preferences}}",
+        "custom_instructions": "{{inputs.custom_instructions}}"
+      }
+    },
+    "stage2": {
+      "system": "You are the Story Generator for an interactive children’s story (ages 3-5). Use only the supplied context.",
+      "instructions": "Using the learning framework, create one continuous narrative between {{constants.word_band.min_words}} and {{constants.word_band.max_words}} words with setup, rising action, single climax, warm resolution. Respect any safe custom instructions provided. Define a small character_bible and 1–2 settings. Language should match {{inputs.language}} if provided, tone {{inputs.tone}} if provided, and reading simplicity aligned to {{inputs.reading_level}} if provided.",
+      "input_mapping": {
+        "learning_framework_json": "{{stage1.output}}",
+        "child_age": "{{inputs.child_age}}",
+        "theme": "{{inputs.theme}}",
+        "parental_guidance": "{{inputs.parental_guidance}}",
+        "character_preferences": "{{inputs.character_preferences}}",
+        "plot_preferences": "{{inputs.plot_preferences}}",
+        "custom_instructions": "{{inputs.custom_instructions}}"
+      }
+    },
+    "stage3": {
+      "system": "You orchestrate story pagination and interactive branches for a preschool storybook.",
+      "instructions": "Split narrative into nodes and embed branching per desired counts while preserving chronology and safety. Follow Stage 3 rules from repository prompts.",
+      "input_mapping": {
+        "story_draft_json": "{{stage2.output}}",
+        "learning_framework_json": "{{stage1.output}}",
+        "node_count": "{{constants.pagination.node_count}}",
+        "desired_choice_count": "{{constants.pagination.desired_choice_count}}"
+      }
+    },
+    "stage4": {
+      "system": "You convert Stage 4 story nodes into display-ready scene text and matching image prompts.",
+      "instructions": "Transform nodes into SceneText and ImagePrompt, add CharacterList per node, polish choices. Follow Stage 4 rules from repository prompts. Append style_prompt_suffix from constants.media.style_guidance_ref (if present) to each ImagePrompt.",
+      "input_mapping": {
+        "story_node_graph_xml": "{{stage3.output}}",
+        "character_bible_json": "{{stage2.output.character_bible}}",
+        "style_defaults": "{\"illustration_style\": \"{{inputs.illustration_style}}\", \"narrator_voice\": \"{{inputs.narrator_voice}}\"}"
+      }
+    }
+  },
+  "safety": {
+    "age_appropriate": true,
+    "notes": "No PII; gentle language; avoid fear and violence."
+  },
+  "outputs": {
+    "expects": ["LearningBlueprint", "StoryDraft", "StoryNodes", "Storyboard"],
+    "format": "JSON"
+  },
+  "lookup": {
+    "reading_level_sentence_length": {"preK": 8, "K-2": 12, "A1": 16}
+  }
+}

@@ -1,0 +1,88 @@
+{
+  "template_id": "feelings-coach",
+  "version": "1.0",
+  "display": {
+    "title": "Feelings Coach",
+    "one_liner": "Identify feelings and choose kind, effective responses.",
+    "example_use_cases": [
+      "Sharing toys at playtime",
+      "Handling disappointment",
+      "Feeling shy in class"
+    ]
+  },
+  "tags": ["education", "kids", "wellbeing", "coaching"],
+  "inputs": {
+    "required": ["child_age", "situation"],
+    "optional": [
+      "child_name",
+      "target_feeling",
+      "coping_style",
+      "parental_guidance",
+      "language",
+      "narrator_voice",
+      "reading_level",
+      "tone",
+      "illustration_style",
+      "custom_instructions"
+    ]
+  },
+  "input_specs": [
+    {"key": "child_age", "label": "Child Age", "type": "enum", "options": [2, 3, 4, 5, 6, 7], "default": 4},
+    {"key": "target_feeling", "label": "Target Feeling", "type": "enum", "options": ["sad", "mad", "worried", "shy", "jealous"], "default": "worried"},
+    {"key": "coping_style", "label": "Coping Style", "type": "enum", "options": ["breath", "count", "stretch", "ask_for_help"], "default": "breath"},
+    {"key": "custom_instructions", "label": "Custom Instructions", "type": "string", "default": ""}
+  ],
+  "constants": {
+    "word_band": {"min_words": 260, "max_words": 340},
+    "pagination": {"node_count": 9, "desired_choice_count": 3},
+    "media": {"style_guidance_ref": "@feelings-coach.image_style_guidance.json"}
+  },
+  "stages": {
+    "stage1": {
+      "system": "You are the Educational Theme Integrator for an interactive storybook generator serving children. Work only with the information provided.",
+      "instructions": "Interpret inputs to produce a coaching blueprint: goals, target feelings, coping actions. Respect safe custom instructions. Output JSON with learning_objectives, target_skills, theme_alignment_notes.",
+      "input_mapping": {
+        "child_age": "{{inputs.child_age}}",
+        "situation": "{{inputs.situation}}",
+        "target_feeling": "{{inputs.target_feeling}}",
+        "coping_style": "{{inputs.coping_style}}",
+        "parental_guidance": "{{inputs.parental_guidance}}",
+        "custom_instructions": "{{inputs.custom_instructions}}"
+      }
+    },
+    "stage2": {
+      "system": "You are the Story Generator for a supportive children’s coaching story. Use only the supplied context.",
+      "instructions": "Write one continuous narrative between {{constants.word_band.min_words}} and {{constants.word_band.max_words}} words modeling feeling identification and coping steps. Respect safe custom instructions. Include small character_bible and 1–2 settings. Use {{inputs.language}} if provided; tone {{inputs.tone}} if provided; reading simplicity per {{inputs.reading_level}} if provided.",
+      "input_mapping": {
+        "learning_framework_json": "{{stage1.output}}",
+        "child_age": "{{inputs.child_age}}",
+        "situation": "{{inputs.situation}}",
+        "child_name": "{{inputs.child_name}}",
+        "target_feeling": "{{inputs.target_feeling}}",
+        "coping_style": "{{inputs.coping_style}}",
+        "custom_instructions": "{{inputs.custom_instructions}}"
+      }
+    },
+    "stage3": {
+      "system": "You orchestrate pagination and choices for gentle coaching.",
+      "instructions": "Split the narrative and add choices that reinforce identifying feelings and choosing coping steps. Keep chronology and kindness.",
+      "input_mapping": {
+        "story_draft_json": "{{stage2.output}}",
+        "learning_framework_json": "{{stage1.output}}",
+        "node_count": "{{constants.pagination.node_count}}",
+        "desired_choice_count": "{{constants.pagination.desired_choice_count}}"
+      }
+    },
+    "stage4": {
+      "system": "You convert Stage 4 story nodes into display-ready scene text and matching image prompts.",
+      "instructions": "Convert nodes into SceneText and ImagePrompt with supportive, inclusive visuals; polish choices to be short and kind. Append style_prompt_suffix from constants.media.style_guidance_ref (if present) to each ImagePrompt.",
+      "input_mapping": {
+        "story_node_graph_xml": "{{stage3.output}}",
+        "character_bible_json": "{{stage2.output.character_bible}}",
+        "style_defaults": "{\"illustration_style\": \"{{inputs.illustration_style}}\", \"narrator_voice\": \"{{inputs.narrator_voice}}\"}"
+      }
+    }
+  },
+  "safety": {"age_appropriate": true, "notes": "No PII; avoid clinical claims; gentle tone."},
+  "outputs": {"expects": ["LearningBlueprint", "StoryDraft", "StoryNodes", "Storyboard"], "format": "JSON"}
+}

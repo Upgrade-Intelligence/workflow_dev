@@ -1,0 +1,89 @@
+{
+  "template_id": "science-quick-explain",
+  "version": "1.0",
+  "display": {
+    "title": "Science Quick Explain",
+    "one_liner": "Bite-size explainer with a strong hook and one recap choice.",
+    "example_use_cases": [
+      "Why do leaves change color?",
+      "How do airplanes stay up?",
+      "What is static electricity?"
+    ]
+  },
+  "tags": ["education", "explainer", "science"],
+  "inputs": {
+    "required": ["topic"],
+    "optional": [
+      "language",
+      "tone",
+      "hook_style",
+      "prior_knowledge",
+      "region_or_context",
+      "visual_focus",
+      "narrator_voice",
+      "illustration_style",
+      "custom_instructions"
+    ]
+  },
+  "input_specs": [
+    {"key": "language", "label": "Language", "type": "enum", "options": ["English", "Spanish", "French", "German", "Chinese"], "default": "English"},
+    {"key": "tone", "label": "Tone", "type": "enum", "options": ["friendly", "neutral", "inspiring"], "default": "friendly"},
+    {"key": "hook_style", "label": "Hook Style", "type": "enum", "options": ["question", "surprising_fact", "analogy"], "default": "question"},
+    {"key": "prior_knowledge", "label": "Prior Knowledge", "type": "string_list", "default": []},
+    {"key": "region_or_context", "label": "Region/Context", "type": "string", "default": ""},
+    {"key": "visual_focus", "label": "Visual Focus", "type": "enum", "options": ["diagram", "photo", "infographic"], "default": "infographic"},
+    {"key": "narrator_voice", "label": "Narrator Voice", "type": "string", "default": "NeutralGuide"},
+    {"key": "illustration_style", "label": "Illustration Style", "type": "enum", "options": ["infographic", "flat-vector", "documentary-stills"], "default": "infographic"},
+    {"key": "custom_instructions", "label": "Custom Instructions", "type": "string", "default": ""}
+  ],
+  "constants": {
+    "word_band": {"min_words": 220, "max_words": 300},
+    "pagination": {"node_count": 8, "desired_choice_count": 1},
+    "media": {"style_guidance_ref": "@science-quick-explain.image_style_guidance.json"}
+  },
+  "stages": {
+    "stage1": {
+      "system": "You are the Educational Theme Integrator for an interactive explainer generator. Work only with the information provided.",
+      "instructions": "Interpret the inputs to produce a concise learning blueprint (objectives, target skills, context notes). If custom instructions are present, respect them when safe and appropriate. Output JSON with learning_objectives, target_skills, theme_alignment_notes.",
+      "input_mapping": {
+        "topic": "{{inputs.topic}}",
+        "prior_knowledge": "{{inputs.prior_knowledge}}",
+        "region_or_context": "{{inputs.region_or_context}}",
+        "custom_instructions": "{{inputs.custom_instructions}}"
+      }
+    },
+    "stage2": {
+      "system": "You are the Story Generator for a short educational explainer. Use only the supplied context.",
+      "instructions": "Write one continuous explainer between {{constants.word_band.min_words}} and {{constants.word_band.max_words}} words: hook ({{inputs.hook_style}}), simple explanation, example, recap. Respect safe custom instructions. Provide a minimal character_bible (narrator/guide if used) and one primary setting. Use {{inputs.language}} if provided and {{inputs.tone}} tone.",
+      "input_mapping": {
+        "learning_framework_json": "{{stage1.output}}",
+        "topic": "{{inputs.topic}}",
+        "custom_instructions": "{{inputs.custom_instructions}}",
+        "language": "{{inputs.language}}",
+        "tone": "{{inputs.tone}}",
+        "hook_style": "{{inputs.hook_style}}"
+      }
+    },
+    "stage3": {
+      "system": "You orchestrate story pagination and interactive branches for a shareable explainer.",
+      "instructions": "Split the narrative into nodes and add exactly the configured number of choices per the constants. Maintain chronology and clarity. Follow the Stage 3 rules from repository prompts.",
+      "input_mapping": {
+        "story_draft_json": "{{stage2.output}}",
+        "learning_framework_json": "{{stage1.output}}",
+        "node_count": "{{constants.pagination.node_count}}",
+        "desired_choice_count": "{{constants.pagination.desired_choice_count}}"
+      }
+    },
+    "stage4": {
+      "system": "You convert Stage 4 story nodes into display-ready scene text and matching image prompts.",
+      "instructions": "Convert nodes into SceneText and ImagePrompt; polish the single recap choice for shareability. Follow Stage 4 rules. Append style_prompt_suffix from constants.media.style_guidance_ref (if present) to each ImagePrompt.",
+      "input_mapping": {
+        "story_node_graph_xml": "{{stage3.output}}",
+        "character_bible_json": "{{stage2.output.character_bible}}",
+        "style_defaults": "{\"illustration_style\": \"{{inputs.illustration_style}}\", \"narrator_voice\": \"{{inputs.narrator_voice}}\"}"
+      }
+    }
+  },
+  "safety": {"age_appropriate": true, "notes": "Factual, neutral wording; no PII."},
+  "outputs": {"expects": ["LearningBlueprint", "StoryDraft", "StoryNodes", "Storyboard"], "format": "JSON"}
+}

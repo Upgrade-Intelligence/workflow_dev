@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Talkbook Template Schema (Stages)",
+  "type": "object",
+  "required": [
+    "template_id",
+    "version",
+    "display",
+    "tags",
+    "inputs",
+    "stages",
+    "outputs"
+  ],
+  "properties": {
+    "template_id": {"type": "string"},
+    "version": {"type": "string"},
+    "display": {
+      "type": "object",
+      "required": ["title", "one_liner", "example_use_cases"],
+      "properties": {
+        "title": {"type": "string"},
+        "one_liner": {"type": "string"},
+        "example_use_cases": {"type": "array", "items": {"type": "string"}, "minItems": 1}
+      }
+    },
+    "tags": {"type": "array", "items": {"type": "string"}, "minItems": 1},
+    "inputs": {
+      "type": "object",
+      "required": ["required", "optional"],
+      "properties": {
+        "required": {"type": "array", "items": {"type": "string"}},
+        "optional": {
+          "type": "array",
+          "items": {"type": "string"},
+          "contains": {"const": "custom_instructions"}
+        }
+      }
+    },
+    "input_specs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["key", "type"],
+        "properties": {
+          "key": {"type": "string"},
+          "label": {"type": "string"},
+          "type": {"type": "string", "enum": ["enum", "string", "number", "boolean", "string_list"]},
+          "options": {"type": "array", "items": {}},
+          "default": {}
+        }
+      },
+      "contains": {
+        "type": "object",
+        "required": ["key", "type"],
+        "properties": {
+          "key": {"const": "custom_instructions"},
+          "type": {"const": "string"}
+        }
+      }
+    },
+    "stages": {
+      "type": "object",
+      "required": ["stage1", "stage2", "stage3", "stage4"],
+      "properties": {
+        "stage1": {
+          "type": "object",
+          "required": ["system", "instructions", "input_mapping"],
+          "properties": {
+            "system": {"type": "string"},
+            "instructions": {"type": "string"},
+            "input_mapping": {"type": "object"}
+          }
+        },
+        "stage2": {
+          "type": "object",
+          "required": ["system", "instructions", "input_mapping"],
+          "properties": {
+            "system": {"type": "string"},
+            "instructions": {"type": "string"},
+            "input_mapping": {"type": "object"}
+          }
+        },
+        "stage3": {
+          "type": "object",
+          "required": ["system", "instructions", "input_mapping"],
+          "properties": {
+            "system": {"type": "string"},
+            "instructions": {"type": "string"},
+            "input_mapping": {"type": "object"}
+          }
+        },
+        "stage4": {
+          "type": "object",
+          "required": ["system", "instructions", "input_mapping"],
+          "properties": {
+            "system": {"type": "string"},
+            "instructions": {"type": "string"},
+            "input_mapping": {"type": "object"}
+          }
+        }
+      }
+    },
+    "constants": {
+      "type": "object",
+      "properties": {
+        "word_band": {
+          "type": "object",
+          "required": ["min_words", "max_words"],
+          "properties": {
+            "min_words": {"type": "number"},
+            "max_words": {"type": "number"}
+          }
+        },
+        "pagination": {
+          "type": "object",
+          "required": ["node_count", "desired_choice_count"],
+          "properties": {
+            "node_count": {"type": "number"},
+            "desired_choice_count": {"type": "number"}
+          }
+        },
+        "media": {
+          "type": "object",
+          "properties": {
+            "style_guidance_ref": {"type": "string"}
+          }
+        }
+      }
+    },
+    "safety": {"type": "object"},
+    "outputs": {
+      "type": "object",
+      "required": ["expects", "format"],
+      "properties": {
+        "expects": {"type": "array", "items": {"type": "string"}},
+        "format": {"type": "string"}
+      }
+    },
+    "lookup": {"type": "object"}
+  }
+}

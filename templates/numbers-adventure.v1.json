@@ -1,0 +1,87 @@
+{
+  "template_id": "numbers-adventure",
+  "version": "1.0",
+  "display": {
+    "title": "Numbers Adventure",
+    "one_liner": "Count-and-find mini quest in a lively scene.",
+    "example_use_cases": [
+      "Count to 5 at the market",
+      "Find 10 stars in the sky",
+      "Spot even numbers at the zoo"
+    ]
+  },
+  "tags": ["education", "kids", "math", "counting"],
+  "inputs": {
+    "required": ["child_age", "count_target", "scene_theme"],
+    "optional": [
+      "child_name",
+      "favorite_items",
+      "parental_guidance",
+      "language",
+      "narrator_voice",
+      "reading_level",
+      "tone",
+      "illustration_style",
+      "custom_instructions"
+    ]
+  },
+  "input_specs": [
+    {"key": "child_age", "label": "Child Age", "type": "enum", "options": [2, 3, 4, 5, 6, 7], "default": 4},
+    {"key": "count_target", "label": "Count Target", "type": "number", "default": 10},
+    {"key": "scene_theme", "label": "Scene Theme", "type": "enum", "options": ["zoo", "market", "park", "beach"], "default": "park"},
+    {"key": "favorite_items", "label": "Favorite Items", "type": "string_list", "default": []},
+    {"key": "custom_instructions", "label": "Custom Instructions", "type": "string", "default": ""}
+  ],
+  "constants": {
+    "word_band": {"min_words": 240, "max_words": 320},
+    "pagination": {"node_count": 8, "desired_choice_count": 2},
+    "media": {"style_guidance_ref": "@numbers-adventure.image_style_guidance.json"}
+  },
+  "stages": {
+    "stage1": {
+      "system": "You are the Educational Theme Integrator for an interactive storybook generator serving children. Work only with the information provided.",
+      "instructions": "Interpret inputs to produce a counting blueprint: target number, items to count, scaffolding steps. Respect safe custom instructions. Output JSON with learning_objectives, target_skills, theme_alignment_notes.",
+      "input_mapping": {
+        "child_age": "{{inputs.child_age}}",
+        "count_target": "{{inputs.count_target}}",
+        "scene_theme": "{{inputs.scene_theme}}",
+        "favorite_items": "{{inputs.favorite_items}}",
+        "custom_instructions": "{{inputs.custom_instructions}}"
+      }
+    },
+    "stage2": {
+      "system": "You are the Story Generator for a playful children’s counting adventure. Use only the supplied context.",
+      "instructions": "Write one continuous counting quest between {{constants.word_band.min_words}} and {{constants.word_band.max_words}} words that invites spotting and counting up to {{inputs.count_target}}. Respect safe custom instructions. Include small character_bible and 1–2 settings. Use {{inputs.language}} if provided; tone {{inputs.tone}} if provided; reading simplicity per {{inputs.reading_level}} if provided.",
+      "input_mapping": {
+        "learning_framework_json": "{{stage1.output}}",
+        "child_age": "{{inputs.child_age}}",
+        "count_target": "{{inputs.count_target}}",
+        "scene_theme": "{{inputs.scene_theme}}",
+        "favorite_items": "{{inputs.favorite_items}}",
+        "child_name": "{{inputs.child_name}}",
+        "custom_instructions": "{{inputs.custom_instructions}}"
+      }
+    },
+    "stage3": {
+      "system": "You orchestrate pagination and choices for a counting quest.",
+      "instructions": "Split the narrative and add choices that support counting steps and checking answers. Keep chronology and encouragement.",
+      "input_mapping": {
+        "story_draft_json": "{{stage2.output}}",
+        "learning_framework_json": "{{stage1.output}}",
+        "node_count": "{{constants.pagination.node_count}}",
+        "desired_choice_count": "{{constants.pagination.desired_choice_count}}"
+      }
+    },
+    "stage4": {
+      "system": "You convert Stage 4 story nodes into display-ready scene text and matching image prompts.",
+      "instructions": "Convert nodes into SceneText and ImagePrompt highlighting countable items; polish choices for quick checks. Append style_prompt_suffix from constants.media.style_guidance_ref (if present) to each ImagePrompt.",
+      "input_mapping": {
+        "story_node_graph_xml": "{{stage3.output}}",
+        "character_bible_json": "{{stage2.output.character_bible}}",
+        "style_defaults": "{\"illustration_style\": \"{{inputs.illustration_style}}\", \"narrator_voice\": \"{{inputs.narrator_voice}}\"}"
+      }
+    }
+  },
+  "safety": {"age_appropriate": true, "notes": "No PII; keep tasks safe and achievable."},
+  "outputs": {"expects": ["LearningBlueprint", "StoryDraft", "StoryNodes", "Storyboard"], "format": "JSON"}
+}
